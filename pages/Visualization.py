@@ -36,7 +36,7 @@ def load_from_drive(_file_map):
         output = data_folder / f"{name}.csv"
 
         if not output.exists():
-            st.info(f"Downloading {name}.csv…")
+            # st.info(f"Downloading {name}.csv…")
             gdown.download(url, str(output), quiet=False)
         # if name != "responses":
         #     dfs[name] = pd.read_csv(output, low_memory=False, on_bad_lines='skip')
