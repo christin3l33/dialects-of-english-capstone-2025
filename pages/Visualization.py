@@ -38,15 +38,15 @@ def load_from_drive(_file_map):
         if not output.exists():
             st.info(f"Downloading {name}.csv…")
             gdown.download(url, str(output), quiet=False)
-        if name != "responses":
-            dfs[name] = pd.read_csv(output, low_memory=False, on_bad_lines='skip')
-        else:
-            dfs[name] = output
-        # try:
+        # if name != "responses":
         #     dfs[name] = pd.read_csv(output, low_memory=False, on_bad_lines='skip')
-        # except pd.errors.ParserError:
-        #     st.error(f"Could not parse {name}.csv. Make sure it is a valid CSV.")
-        #     st.stop()
+        # else:
+        #     dfs[name] = output
+        try:
+            dfs[name] = pd.read_csv(output, low_memory=False, on_bad_lines='skip')
+        except pd.errors.ParserError:
+            st.error(f"Could not parse {name}.csv. Make sure it is a valid CSV.")
+            st.stop()
     return dfs
 
 
@@ -64,12 +64,12 @@ responses = data["responses"]
 
 st.success("✅ All four datasets loaded successfully!")
 
-@st.cache_data
-def load_responses(path):
-    return pd.read_csv(path, low_memory=False, on_bad_lines='skip')
+# @st.cache_data
+# def load_responses(path):
+#     return pd.read_csv(path, low_memory=False, on_bad_lines='skip')
 
-if st.button("Load Responses (large file)"):
-    responses = load_responses(responses)
+# if st.button("Load Responses (large file)"):
+#     responses = load_responses(responses)
 
 st.markdown("---")
 st.subheader("U.S. Dialect Word Usage Over Time")
