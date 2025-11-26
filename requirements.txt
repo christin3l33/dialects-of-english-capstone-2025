@@ -6,3 +6,4 @@ matplotlib
 contextily
 gdown
 seaborn
+plotly
