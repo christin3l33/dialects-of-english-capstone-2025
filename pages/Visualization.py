@@ -5,8 +5,8 @@ import re
 from pathlib import Path
 import plotly.express as px
 import numpy as np
-import gdown
-import re
+from datetime import datetime
+# For all use_container_width=True, use width='stretch' after 12/31/2025
 
 
 st.set_page_config(page_title="Dialect Change Over Time", layout="wide")
@@ -36,12 +36,7 @@ def load_from_drive(_file_map):
         output = data_folder / f"{name}.csv"
 
         if not output.exists():
-            # st.info(f"Downloading {name}.csv…")
             gdown.download(url, str(output), quiet=False)
-        # if name != "responses":
-        #     dfs[name] = pd.read_csv(output, low_memory=False, on_bad_lines='skip')
-        # else:
-        #     dfs[name] = output
         try:
             dfs[name] = pd.read_csv(output, low_memory=False, on_bad_lines='skip')
         except pd.errors.ParserError:
@@ -62,14 +57,9 @@ choices = data["choices"]
 users = data["users"]
 responses = data["responses"]
 
+raw_responses = responses.copy()
+
 st.success("✅ All four datasets loaded successfully!")
-
-# @st.cache_data
-# def load_responses(path):
-#     return pd.read_csv(path, low_memory=False, on_bad_lines='skip')
-
-# if st.button("Load Responses (large file)"):
-#     responses = load_responses(responses)
 
 st.markdown("---")
 st.subheader("U.S. Dialect Word Usage Over Time")
@@ -236,3 +226,142 @@ st.markdown("""
 
 👉 *This example is **ONLY SODA VS. POP!***
 """)
+
+# Roly Poly Question
+st.markdown("---")
+st.subheader("Roly Poly Question: Age Group Analysis")
+st.write("What do you call a creature that rolls up into a ball when when you touch it?")
+
+ROLY_POLY_QID = 21
+responses_roly = raw_responses[raw_responses["question_id"] == ROLY_POLY_QID].copy()
+
+# Merge with users to get age
+responses_roly = responses_roly.merge(
+    users[["id", "year"]],
+    left_on="user_id",
+    right_on="id",
+    how="left"
+)
+
+# Merge with choices to get values
+responses_roly = responses_roly.merge(
+    choices[["id", "value"]],
+    left_on="choice_id",
+    right_on="id",
+    how="left"
+)
+
+current_year = datetime.now().year
+responses_roly["age"] = current_year - responses_roly["year"]
+
+def categorize_age(age):
+    if pd.isna(age):
+        return None
+    if age < 18:
+        return 'Gen Z (Under 18)'
+    elif age < 25:
+        return 'Gen Z (18-24)'
+    elif age < 35:
+        return 'Millennial (25-34)'
+    elif age < 45:
+        return 'Millennial (35-44)'
+    elif age < 55:
+        return 'Gen X (45-54)'
+    elif age < 65:
+        return 'Boomer (55-64)'
+    else:
+        return 'Boomer (65+)'
+
+responses_roly["age_group"] = responses_roly["age"].apply(categorize_age)
+
+# Clean the term values
+responses_roly["term"] = responses_roly["value"].combine_first(responses_roly["other"])
+responses_roly["term"] = responses_roly["term"].str.lower().str.strip()
+
+# Regex to match differnet variations of "roly poly"
+responses_roly["term"] = responses_roly["term"].replace(
+    to_replace=r'(?i)^(roly|rollie|rolly|roley)[\s\-]*poly.*$',
+    value='roly poly',
+    regex=True
+)
+
+responses_roly = responses_roly.dropna(subset=["age_group", "term"])
+
+# Top choices
+choice_counts = responses_roly["term"].value_counts()
+top_choices = choice_counts[choice_counts >= len(responses_roly) * 0.05].index
+responses_roly = responses_roly[responses_roly["term"].isin(top_choices)]
+
+contingency = pd.crosstab(responses_roly["age_group"], responses_roly["term"])
+
+# Youngest to oldest
+age_order = [
+    'Gen Z (Under 18)',
+    'Gen Z (18-24)',
+    'Millennial (25-34)',
+    'Millennial (35-44)',
+    'Gen X (45-54)',
+    'Boomer (55-64)',
+    'Boomer (65+)'
+]
+age_order_present = [age for age in age_order if age in contingency.index]
+contingency = contingency.reindex(age_order_present)
+
+contingency_pct = contingency.div(contingency.sum(axis=1), axis=0) * 100
+col1, col2 = st.columns(2)
+
+with col1:
+    st.markdown("#### Usage by Age Group")
+    bar_data = contingency_pct.reset_index().melt(
+        id_vars="age_group",
+        var_name="term",
+        value_name="percentage"
+    )
+    
+    fig_bar = px.bar(
+        bar_data,
+        x="term",
+        y="percentage",
+        color="age_group",
+        barmode="group",
+        labels={
+            "percentage": "% Using Term",
+            "term": "Dialect Term",
+            "age_group": "Age Group"
+        },
+        color_discrete_sequence=px.colors.qualitative.Set3
+    )
+    
+    fig_bar.update_layout(
+        xaxis_title="Dialect Term",
+        yaxis_title="Percentage Using Term (%)",
+        legend_title="Age Group",
+        hovermode="closest",
+        yaxis_range=[0, 100],
+        height=500
+    )
+    
+    st.plotly_chart(fig_bar, use_container_width=True)
+
+with col2:
+    st.markdown("#### Overall Response Distribution")
+    total_counts = responses_roly["term"].value_counts()
+    
+    fig_pie = px.pie(
+        values=total_counts.values,
+        names=total_counts.index,
+        color_discrete_sequence=px.colors.qualitative.Set3
+    )
+    
+    fig_pie.update_traces(
+        textposition='inside',
+        textinfo='percent+label',
+        hovertemplate='<b>%{label}</b><br>Count: %{value}<br>Percentage: %{percent}<extra></extra>'
+    )
+    
+    fig_pie.update_layout(
+        height=500,
+        showlegend=True
+    )
+    
+    st.plotly_chart(fig_pie, use_container_width=True)
