@@ -6,8 +6,6 @@ from pathlib import Path
 import plotly.express as px
 import numpy as np
 from datetime import datetime
-# For all use_container_width=True, use width='stretch' after 12/31/2025
-
 
 st.set_page_config(page_title="Dialect Change Over Time", layout="wide")
 st.markdown("<h1 style='text-align: center;'>Visualization Page</h1>", unsafe_allow_html=True)
@@ -135,7 +133,7 @@ fig.update_layout(
     plot_bgcolor="white"
 )
 
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, width='stretch')
 
 
 QUESTION_ID = 2  # Only the "sweetened carbonated beverage" question
@@ -219,7 +217,7 @@ fig.update_layout(
 )
 
 st.subheader("Lexical Diversity (Shannon Entropy) by U.S. State — Soda vs. Pop")
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, width='stretch')
 st.markdown("""
 **Shannon entropy** measures how diverse word choices are within each state  
 (high = high diversity, no single dominant response; low = low diversity, one response dominates).  
@@ -341,7 +339,7 @@ with col1:
         height=500
     )
     
-    st.plotly_chart(fig_bar, use_container_width=True)
+    st.plotly_chart(fig_bar, width='stretch')
 
 with col2:
     st.markdown("#### Overall Response Distribution")
@@ -364,4 +362,4 @@ with col2:
         showlegend=True
     )
     
-    st.plotly_chart(fig_pie, use_container_width=True)
+    st.plotly_chart(fig_pie, width='stretch')

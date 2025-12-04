@@ -196,7 +196,7 @@ for i, qid in enumerate(question_ids):
 all_answered = len(st.session_state.answers) == len(QUESTIONS)
 
 if all_answered:
-    if st.button("🎯 Get My Results!", type="primary", use_container_width=True):
+    if st.button("🎯 Get My Results!", type="primary", width='stretch'):
         st.session_state.quiz_complete = True
 
 if st.session_state.quiz_complete and all_answered:
